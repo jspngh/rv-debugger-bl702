@@ -1,24 +1,24 @@
 /**
  * @file usbd_ftdi.c
- * @brief 
- * 
+ * @brief
+ *
  * Copyright (c) 2021 Sipeed team
- * 
+ *
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.  The
  * ASF licenses this file to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance with the
  * License.  You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
  * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
  * License for the specific language governing permissions and limitations
  * under the License.
- * 
+ *
  */
 #include "usbd_core.h"
 #include "usbd_ftdi.h"
@@ -102,7 +102,7 @@ static void ftdi_set_baudrate(uint32_t  itdf_divisor, uint32_t *actual_baudrate)
 static int ftdi_vendor_request_handler(struct usb_setup_packet *pSetup,uint8_t **data,uint32_t *len)
 {
 	static uint32_t actual_baudrate = 1200;
-	switch (pSetup->bRequest) 
+	switch (pSetup->bRequest)
 	{
 		case SIO_READ_EEPROM_REQUEST:
 			*data = (uint8_t*)&ftdi_eeprom_info[pSetup->wIndexL];
@@ -132,26 +132,26 @@ static int ftdi_vendor_request_handler(struct usb_setup_packet *pSetup,uint8_t *
 			{
 				//USBD_LOG("RTS 0\r\n");
 				usbd_ftdi_set_rts(false);
-			}			
+			}
 			break;
 		case SIO_SET_FLOW_CTRL_REQUEST:
 
 			break;
 		case SIO_SET_BAUDRATE_REQUEST://wValue，2个字节波特率
-		{	
+		{
 			uint8_t baudrate_high = (pSetup->wIndex >> 8);
-			ftdi_set_baudrate(pSetup->wValue|(baudrate_high<<16),&actual_baudrate);	
+			ftdi_set_baudrate(pSetup->wValue|(baudrate_high<<16),&actual_baudrate);
 			if(actual_baudrate != 1200)
 			{
 				usbd_ftdi_set_line_coding(actual_baudrate, 8, 0, 0);
 			}
-			break;	
+			break;
 		}
 		case SIO_SET_DATA_REQUEST:
 		/**
 		 * D0-D7 databits  BITS_7=7, BITS_8=8
 		 * D8-D10 parity  NONE=0, ODD=1, EVEN=2, MARK=3, SPACE=4
-		 * D11-D12 		STOP_BIT_1=0, STOP_BIT_15=1, STOP_BIT_2=2 
+		 * D11-D12 		STOP_BIT_1=0, STOP_BIT_15=1, STOP_BIT_2=2
 		 * D14  		BREAK_OFF=0, BREAK_ON=1
 		 **/
 		 	if(actual_baudrate != 1200)
@@ -192,22 +192,22 @@ static int ftdi_vendor_request_handler(struct usb_setup_packet *pSetup,uint8_t *
 		- B4       Break interrupt (BI)
 		- B5       Transmitter holding register (THRE)
 		- B6       Transmitter empty (TEMT)
-		- B7       Error in RCVR FIFO */		
+		- B7       Error in RCVR FIFO */
 			*data = (uint8_t*)&ftdi_eeprom_info[2];
 			*len = 2;
-			break;		
+			break;
 		case SIO_SET_EVENT_CHAR_REQUEST:
 
-			break;		
+			break;
 		case SIO_SET_ERROR_CHAR_REQUEST:
 
-			break;		
+			break;
 		case SIO_SET_LATENCY_TIMER_REQUEST:
 			if(pSetup->wIndexL == 1)
 				Latency_Timer1 = pSetup->wValueL;
 			else
 				Latency_Timer2 = pSetup->wValueL;
-			break;		
+			break;
 		case SIO_GET_LATENCY_TIMER_REQUEST:
 			if(pSetup->wIndexL == 1)
 				*data = &Latency_Timer1;
@@ -215,10 +215,10 @@ static int ftdi_vendor_request_handler(struct usb_setup_packet *pSetup,uint8_t *
 				*data = &Latency_Timer2;
 			*len = 1;
 			//USBD_LOG("get latency:%d,len:%d\r\n",Latency_Timer1,*len);
-			break;							
+			break;
 		case SIO_SET_BITMODE_REQUEST:
 
-			break;		
+			break;
 		default:
 			USBD_LOG_DBG("CDC ACM request 0x%x, value 0x%x\r\n",
 				pSetup->bRequest, pSetup->wValue);
@@ -240,7 +240,7 @@ static void ftdi_notify_handler(uint8_t event, void* arg)
 		break;
 		default:
 			break;
-	}	
+	}
 }
 
 __weak void usbd_ftdi_set_line_coding(uint32_t baudrate,uint8_t databits,uint8_t parity,uint8_t stopbits)
@@ -276,7 +276,7 @@ void usbd_ftdi_add_interface(usbd_class_t *class, usbd_interface_t *intf)
 
 	if(last_class != class)
 	{
-		last_class = class;		
+		last_class = class;
 		usbd_class_register(class);
 	}
 

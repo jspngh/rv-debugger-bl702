@@ -1,24 +1,24 @@
 /**
  * @file main.c
- * @brief 
- * 
+ * @brief
+ *
  * Copyright (c) 2021 Sipeed team
- * 
+ *
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.  The
  * ASF licenses this file to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance with the
  * License.  You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
  * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
  * License for the specific language governing permissions and limitations
  * under the License.
- * 
+ *
  */
 #include "hal_usb.h"
 #include "usbd_core.h"
@@ -35,7 +35,7 @@ UART:
 	RXD	-> ringbuffer -> usbd_cdc_acm_bulk_in -> CDC_IN_EP
 UART <---------------------------------------------------> USB
 	TXD <- ringbuffer <- usbd_cdc_acm_bulk_out<- CDC_OUT_EP
-	
+
 JTAG:
 	jtag_rx_buffer[jtag_rx_pos] -> jtag_cmd -> mpsse status machine
 	MPSSE_TRANSMIT_BYTE/BIT MSB/LSB MPSSE_TMS_OUT
@@ -144,20 +144,20 @@ uint16_t usb_dc_ftdi_send_from_ringbuffer(struct device *dev, Ring_Buffer_Type *
     {
 		/*uint64_t Latency_Timer = (ep_idx - 1)==0?usbd_ftdi_get_latency_timer1():usbd_ftdi_get_latency_timer2();	//超时才发
 		if(mtimer_get_time_us()-last_send>Latency_Timer*1000) {
-			uint8_t ftdi_header[2] = {0x01,0x60};       
+			uint8_t ftdi_header[2] = {0x01,0x60};
 			memcopy_to_fifo((void *)addr,ftdi_header,2);
 			USB_Set_EPx_Rdy(ep_idx);
 			last_send = mtimer_get_time_us();
 			//MSG("Port%d refresh\r\n", ep_idx);
 			return -USB_DC_RB_SIZE_SMALL_ERR;
 		}*/
-		
+
         if(ep_idx == CDC_IN_EP) //UART
         {
             if((uint32_t)(usbd_ftdi_get_sof_tick()-temp_tick2) >= usbd_ftdi_get_latency_timer2())
             {
-                uint8_t ftdi_header[2] = {0x01,0x60};     
-                temp_tick2 = usbd_ftdi_get_sof_tick();                 
+                uint8_t ftdi_header[2] = {0x01,0x60};
+                temp_tick2 = usbd_ftdi_get_sof_tick();
                 memcopy_to_fifo((void *)addr,ftdi_header,2);
                 USB_Set_EPx_Rdy(ep_idx);
             }
@@ -169,13 +169,13 @@ uint16_t usb_dc_ftdi_send_from_ringbuffer(struct device *dev, Ring_Buffer_Type *
 			//MSG("#");
 			if(mtimer_get_time_us()-last_send>1000)
             {
-				uint8_t ftdi_header[2] = {0x01,0x60};     
-				temp_tick1 = usbd_ftdi_get_sof_tick();  				
+				uint8_t ftdi_header[2] = {0x01,0x60};
+				temp_tick1 = usbd_ftdi_get_sof_tick();
 				memcopy_to_fifo((void *)addr,ftdi_header,2);
 				USB_Set_EPx_Rdy(ep_idx);
 			}
         }
-        return -USB_DC_RB_SIZE_SMALL_ERR; 
+        return -USB_DC_RB_SIZE_SMALL_ERR;
     }
 
 }
@@ -207,7 +207,7 @@ int usb_dc_ftdi_receive_to_ringbuffer(struct device *dev, Ring_Buffer_Type *rb, 
         }
     }
     recv_len = USB_Get_EPx_RX_FIFO_CNT(ep_idx);
-    
+
     /*if rx fifo count equal 0,it means last is send nack and ringbuffer is smaller than 64,
     * so,if ringbuffer is larger than 64,set ack to recv next data.
     */
@@ -247,26 +247,26 @@ void usbd_cdc_acm_bulk_in(uint8_t ep)
 
 /************************  endpoint definition  ************************/
 //For UART
-usbd_endpoint_t cdc_out_ep1 = 
+usbd_endpoint_t cdc_out_ep1 =
 {
     .ep_addr = CDC_OUT_EP,
     .ep_cb = usbd_cdc_acm_bulk_out
 };
 
-usbd_endpoint_t cdc_in_ep1 = 
+usbd_endpoint_t cdc_in_ep1 =
 {
     .ep_addr = CDC_IN_EP,
     .ep_cb = usbd_cdc_acm_bulk_in
 };
 
 //For JTAG
-usbd_endpoint_t cdc_out_ep0 = 
+usbd_endpoint_t cdc_out_ep0 =
 {
     .ep_addr = JTAG_OUT_EP,
     .ep_cb = usbd_cdc_jtag_out
 };
 
-usbd_endpoint_t cdc_in_ep0 = 
+usbd_endpoint_t cdc_in_ep0 =
 {
     .ep_addr = JTAG_IN_EP,
     .ep_cb = usbd_cdc_jtag_in
@@ -329,13 +329,13 @@ int main(void)
         device_control(usb_fs, DEVICE_CTRL_SET_INT, (void *)(USB_SOF_IT|USB_EP2_DATA_OUT_IT | USB_EP1_DATA_IN_IT|USB_EP4_DATA_OUT_IT|USB_EP3_DATA_IN_IT));
     }
     while(!usb_device_is_configured()){};
-    
+
 	led_toggle(0);
     while (1)
     {
         uart_send_from_ringbuffer();
         jtag_process();
     }
-	
+
 	return 0;
 }
