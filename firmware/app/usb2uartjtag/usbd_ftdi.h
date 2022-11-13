@@ -23,6 +23,8 @@
 #ifndef _USBD_FTDI_H
 #define _USBD_FTDI_H
 
+#include "usbd_core.h"
+
 #define CDC_IN_EP 	0x83
 #define CDC_OUT_EP 	0x04
 

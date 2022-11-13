@@ -20,7 +20,6 @@
  * under the License.
  *
  */
-#include "usbd_core.h"
 #include "usbd_ftdi.h"
 
 extern const uint16_t ftdi_eeprom_info[];

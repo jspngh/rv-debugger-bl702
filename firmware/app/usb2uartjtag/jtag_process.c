@@ -1,5 +1,4 @@
 #include "hal_usb.h"
-#include "usbd_core.h"
 #include "usbd_ftdi.h"
 #include "ring_buffer.h"
 #include "hal_gpio.h"

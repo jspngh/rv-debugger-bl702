@@ -28,7 +28,6 @@
 #include "hal_usb.h"
 #include "io_cfg.h"
 #include "uart_interface.h"
-#include "usbd_core.h"
 #include "usbd_ftdi.h"
 
 /*
