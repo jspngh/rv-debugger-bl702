@@ -1,5 +1,5 @@
 /**
- * @file usbd_ftdi.h
+ * @file io_cfg.h
  * @brief
  *
  * Copyright (c) 2021 Sipeed team

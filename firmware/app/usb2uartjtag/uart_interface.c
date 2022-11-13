@@ -64,13 +64,14 @@ void uart_irq_callback(struct device *dev, void *args, uint32_t size,
     MSG("ov\r\n");
   }
 }
+
 void uart1_init(void) {
   uart_register(UART1_INDEX, "uart1");
   uart1 = device_find("uart1");
 
   if (uart1) {
-    device_open(
-        uart1, DEVICE_OFLAG_DMA_TX | DEVICE_OFLAG_INT_RX);  // uart0 tx dma mode
+    // uart0 tx dma mode
+    device_open(uart1, DEVICE_OFLAG_DMA_TX | DEVICE_OFLAG_INT_RX);
     device_control(uart1, DEVICE_CTRL_SUSPEND, NULL);
     device_set_callback(uart1, uart_irq_callback);
     device_control(uart1, DEVICE_CTRL_SET_INT,
@@ -156,18 +157,18 @@ extern void led_toggle(uint8_t idx);
 void uart_send_from_ringbuffer(void) {
   if (Ring_Buffer_Get_Length(&usb_rx_rb)) {
     if (!device_control(dma_ch2, DEVICE_CTRL_DMA_CHANNEL_GET_STATUS, NULL)) {
-      uint32_t avalibleCnt =
+      uint32_t availableCnt =
           Ring_Buffer_Read(&usb_rx_rb, src_buffer, UART_TX_DMA_SIZE);
 
-      if (avalibleCnt) {
+      if (availableCnt) {
         dma_channel_stop(dma_ch2);
-        uart_dma_ctrl_cfg.bits.TransferSize = avalibleCnt;
+        uart_dma_ctrl_cfg.bits.TransferSize = availableCnt;
         memcpy(&uart_lli_list.cfg, &uart_dma_ctrl_cfg,
                sizeof(dma_control_data_t));
         device_control(dma_ch2, DEVICE_CTRL_DMA_CHANNEL_UPDATE,
                        (void *)((uint32_t)&uart_lli_list));
         dma_channel_start(dma_ch2);
-        led_toggle(0);  // TX indication
+        led_toggle(0); // TX indication
       }
     }
   }

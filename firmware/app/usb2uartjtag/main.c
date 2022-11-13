@@ -24,6 +24,7 @@
 #include "bl702_glb.h"
 #include "bl702_usb.h"
 #include "hal_gpio.h"
+#include "hal_mtimer.h"
 #include "hal_usb.h"
 #include "io_cfg.h"
 #include "uart_interface.h"
@@ -34,10 +35,10 @@
 UART:
         RXD	-> ringbuffer -> usbd_cdc_acm_bulk_in -> CDC_IN_EP
 UART <---------------------------------------------------> USB
-        TXD <- ringbuffer <- usbd_cdc_acm_bulk_out<- CDC_OUT_EP
+        TXD <- ringbuffer <- usbd_cdc_acm_bulk_out <- CDC_OUT_EP
 
 JTAG:
-        jtag_rx_buffer[jtag_rx_pos] -> jtag_cmd -> mpsse status machine
+        jtag_rx_buffer[jtag_rx_pos] -> jtag_cmd -> mpsse state machine
         MPSSE_TRANSMIT_BYTE/BIT MSB/LSB MPSSE_TMS_OUT
         bitbang simulate clk rate about 5MHz
 */
@@ -80,7 +81,7 @@ void led_toggle(uint8_t idx)
     return;
 }
 
-/************************  API for usbd_ftdi  ************************/
+/************************  API for usbd_ftdi  *************************/
 void usbd_ftdi_set_line_coding(uint32_t baudrate, uint8_t databits,
                                uint8_t parity, uint8_t stopbits)
 {
@@ -97,8 +98,7 @@ void usbd_ftdi_set_rts(bool rts)
     rts_pin_set(!rts);
 }
 
-/************************  USB UART logic for latency timer
- * ************************/
+/*****************  USB UART logic for latency timer  *****************/
 static volatile uint32_t temp_tick2 = 0; // tick for uart port
 static volatile uint32_t temp_tick1 = 0; // tick for uart port
 uint64_t last_send = 0;
@@ -139,17 +139,19 @@ uint16_t usb_dc_ftdi_send_from_ringbuffer(struct device *dev,
         last_send = mtimer_get_time_us();
         return 0;
     } else {
-        /*uint64_t Latency_Timer = (ep_idx - 1)==0?usbd_ftdi_get_latency_timer1():usbd_ftdi_get_latency_timer2();	//超时才发
-		if(mtimer_get_time_us()-last_send>Latency_Timer*1000) {
-			uint8_t ftdi_header[2] = {0x01,0x60};
-			memcopy_to_fifo((void *)addr,ftdi_header,2);
-			USB_Set_EPx_Rdy(ep_idx);
-			last_send = mtimer_get_time_us();
-			//MSG("Port%d refresh\r\n", ep_idx);
-			return -USB_DC_RB_SIZE_SMALL_ERR;
-		}*/
-
-        if (ep_idx == CDC_IN_EP) //UART
+        /*
+        uint64_t Latency_Timer = (ep_idx - 1) == 0 ? usbd_ftdi_get_latency_timer1() : usbd_ftdi_get_latency_timer2();
+        // 超时才发
+        if (mtimer_get_time_us() - last_send > Latency_Timer * 1000) {
+            uint8_t ftdi_header[2] = { 0x01, 0x60 };
+            memcopy_to_fifo((void *)addr, ftdi_header, 2);
+            USB_Set_EPx_Rdy(ep_idx);
+            last_send = mtimer_get_time_us();
+            // MSG("Port%d refresh\r\n", ep_idx);
+            return -USB_DC_RB_SIZE_SMALL_ERR;
+        }
+        */
+        if (ep_idx == CDC_IN_EP) // UART
         {
             if ((uint32_t)(usbd_ftdi_get_sof_tick() - temp_tick2) >= usbd_ftdi_get_latency_timer2()) {
                 uint8_t ftdi_header[2] = { 0x01, 0x60 };
@@ -159,9 +161,12 @@ uint16_t usb_dc_ftdi_send_from_ringbuffer(struct device *dev,
             }
         } else //0x81, JTAG
         {
-            //if((uint32_t)(usbd_ftdi_get_sof_tick()-temp_tick1) >= usbd_ftdi_get_latency_timer1())
-            //if(mpsse_status != 12)
-            //MSG("#");
+            // if ((uint32_t)(usbd_ftdi_get_sof_tick() - temp_tick1) >=
+            //     usbd_ftdi_get_latency_timer1()) {
+            //     if (mpsse_status != 12) {
+            //         MSG("#");
+            //     }
+            // }
             if (mtimer_get_time_us() - last_send > 1000) {
                 uint8_t ftdi_header[2] = { 0x01, 0x60 };
                 temp_tick1 = usbd_ftdi_get_sof_tick();
@@ -199,9 +204,9 @@ int usb_dc_ftdi_receive_to_ringbuffer(struct device *dev, Ring_Buffer_Type *rb,
     }
     recv_len = USB_Get_EPx_RX_FIFO_CNT(ep_idx);
 
-    /* if rx fifo count equal 0,it means last is send nack and ringbuffer is
-     * smaller than 64, so,if ringbuffer is larger than 64,set ack to recv next
-     * data.
+    /* if rx fifo count equal 0, it means last is send NACK and ringbuffer is
+     * smaller than 64, so if ringbuffer is larger than 64,
+     * set ACK to recv next data.
      */
     if (overflow_flag && (Ring_Buffer_Get_Empty_Length(rb) > 64) && (!recv_len)) {
         overflow_flag = false;
@@ -278,19 +283,14 @@ int main(void)
     // hexarr2string(&chipid[2],3,chipid2);
     // bflb_platform_dump(chipid,8);
     // bflb_platform_dump(chipid2,6);
-    cdc_descriptor[0x12 + 0x37 + 0x04 + 0x0a + 0x1c + 0x24] = 0x00; // chipid2[0];
-    cdc_descriptor[0x12 + 0x37 + 0x04 + 0x0a + 0x1c + 0x24 + 2] =
-        0x11; // chipid2[1];
-    cdc_descriptor[0x12 + 0x37 + 0x04 + 0x0a + 0x1c + 0x24 + 4] =
-        0x22; // chipid2[2];
-    cdc_descriptor[0x12 + 0x37 + 0x04 + 0x0a + 0x1c + 0x24 + 6] =
-        0x33; // chipid2[3];
-    cdc_descriptor[0x12 + 0x37 + 0x04 + 0x0a + 0x1c + 0x24 + 8] =
-        0x44; // chipid2[4];
-    cdc_descriptor[0x12 + 0x37 + 0x04 + 0x0a + 0x1c + 0x24 + 10] =
-        0x55; // chipid2[5];
+    const size_t descriptor_idx = 0x12 + 0x37 + 0x04 + 0x0a + 0x1c + 0x24;
+    cdc_descriptor[descriptor_idx] = 0x00;      // chipid2[0];
+    cdc_descriptor[descriptor_idx + 2] = 0x11;  // chipid2[1];
+    cdc_descriptor[descriptor_idx + 4] = 0x22;  // chipid2[2];
+    cdc_descriptor[descriptor_idx + 6] = 0x33;  // chipid2[3];
+    cdc_descriptor[descriptor_idx + 8] = 0x44;  // chipid2[4];
+    cdc_descriptor[descriptor_idx + 10] = 0x55; // chipid2[5];
     usbd_desc_register(cdc_descriptor);
-
     usbd_ftdi_add_interface(&cdc_class0, &cdc_data_intf0);
     usbd_interface_add_endpoint(&cdc_data_intf0, &cdc_out_ep0);
     usbd_interface_add_endpoint(&cdc_data_intf0, &cdc_in_ep0);
