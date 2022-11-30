@@ -133,7 +133,7 @@ static int ftdi_vendor_request_handler(struct usb_setup_packet *pSetup,
             uint8_t baudrate_high = (pSetup->wIndex >> 8);
             ftdi_set_baudrate(pSetup->wValue | (baudrate_high << 16), &actual_baudrate);
             if (actual_baudrate != 1200) {
-                usbd_ftdi_set_line_coding(actual_baudrate, 8, 0, 0);
+                usbd_ftdi_set_line_coding(actual_baudrate, 8, 0, 1);
             }
             break;
         }
