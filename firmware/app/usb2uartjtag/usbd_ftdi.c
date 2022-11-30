@@ -69,27 +69,31 @@ static void usbd_ftdi_reset(void)
 #define SIO_RTS_CTS_HS                  (0x1 << 8)
 // clang-format on
 
-static void ftdi_set_baudrate(uint32_t itdf_divisor,
+static void ftdi_set_baudrate(uint32_t ftdi_divisor,
                               uint32_t *actual_baudrate)
 {
 #define FTDI_USB_CLK 48000000
-    int baudrate;
-    uint8_t frac[] = { 0, 8, 4, 2, 6, 10, 12, 14 };
-    int divisor = itdf_divisor & 0x3fff;
-    divisor <<= 4;
-    divisor |= frac[(itdf_divisor >> 14) & 0x07];
+    static const uint8_t frac[] = { 0, 8, 4, 2, 6, 10, 12, 14 };
 
-    if (itdf_divisor == 0x01) {
+    int baudrate;
+    int divisor = ftdi_divisor & 0x3fff;
+    divisor <<= 4;
+    divisor |= frac[(ftdi_divisor >> 14) & 0x07];
+
+    if (ftdi_divisor == 0x01) {
         baudrate = 2000000;
-    } else if (itdf_divisor == 0x00) {
+    } else if (ftdi_divisor == 0x00) {
         baudrate = 3000000;
     } else {
         baudrate = FTDI_USB_CLK / divisor;
     }
+
+    // remap baudrate in [10000..12000] range
     if (baudrate > 10000 && baudrate < 12000) {
         *actual_baudrate = (baudrate - 10000) * 10000;
-    } else
+    } else {
         *actual_baudrate = baudrate;
+    }
 }
 
 // static char datatmp[2]={0x32, 0x60};
