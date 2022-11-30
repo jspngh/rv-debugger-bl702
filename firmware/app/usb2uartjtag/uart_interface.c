@@ -72,7 +72,7 @@ void uart1_init(void)
     uart1 = device_find("uart1");
 
     if (uart1) {
-        // uart0 tx dma mode
+        // uart1: rx interrupt mode - tx dma mode
         device_open(uart1, DEVICE_OFLAG_DMA_TX | DEVICE_OFLAG_INT_RX);
         device_control(uart1, DEVICE_CTRL_SUSPEND, NULL);
         device_set_callback(uart1, uart_irq_callback);
@@ -82,33 +82,27 @@ void uart1_init(void)
 
     dma_register(DMA0_CH2_INDEX, "ch2");
     dma_ch2 = device_find("ch2");
+
     if (dma_ch2) {
         device_open(dma_ch2, 0);
         // device_set_callback(dma_ch2, NULL);
         // device_control(dma_ch2, DEVICE_CTRL_SET_INT, NULL);
+        device_control(uart1, DEVICE_CTRL_ATTACH_TX_DMA, dma_ch2);
     }
-    // device_control(uart1, DEVICE_CTRL_ATTACH_TX_DMA, dma_ch2);
 }
 
 void uart1_config(uint32_t baudrate, uart_databits_t databits,
                   uart_parity_t parity, uart_stopbits_t stopbits)
 {
-    uart_param_cfg_t cfg;
-    cfg.baudrate = baudrate;
-    cfg.stopbits = stopbits;
-    cfg.parity = parity;
-
-    if (databits == 5) {
-        cfg.databits = UART_DATA_LEN_5;
-    } else if (databits == 6) {
-        cfg.databits = UART_DATA_LEN_6;
-    } else if (databits == 7) {
-        cfg.databits = UART_DATA_LEN_7;
-    } else if (databits == 8) {
-        cfg.databits = UART_DATA_LEN_8;
-    }
+    uart_param_cfg_t cfg = {
+        .baudrate = baudrate,
+        .databits = databits,
+        .parity = parity,
+        .stopbits = stopbits,
+    };
 
     device_control(uart1, DEVICE_CTRL_CONFIG, &cfg);
+    device_control(uart1, DEVICE_CTRL_RESUME, NULL);
 }
 
 static uint8_t uart1_dtr;

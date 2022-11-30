@@ -84,7 +84,27 @@ void led_toggle(uint8_t idx)
 void usbd_ftdi_set_line_coding(uint32_t baudrate, uint8_t databits,
                                uint8_t parity, uint8_t stopbits)
 {
-    uart1_config(baudrate, databits, parity, stopbits);
+    // convert from `uint8_t` to `uart_databits_t`
+    uart_databits_t databits_t;
+    switch (databits) {
+        case 5:
+            databits_t = UART_DATA_LEN_5;
+            break;
+        case 6:
+            databits_t = UART_DATA_LEN_6;
+            break;
+        case 7:
+            databits_t = UART_DATA_LEN_7;
+            break;
+        default:
+            databits_t = UART_DATA_LEN_8;
+            break;
+    }
+    // stopbits and parity are assumed to use have the correct enum value
+    uart_stopbits_t stopbits_t = stopbits;
+    uart_parity_t parity_t = parity;
+
+    uart1_config(baudrate, databits_t, parity_t, stopbits_t);
 }
 
 void usbd_ftdi_set_dtr(bool dtr)
