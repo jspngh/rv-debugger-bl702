@@ -49,10 +49,10 @@ extern void jtag_gpio_init(void);
 extern void usbd_cdc_jtag_out(uint8_t ep);
 extern void usbd_cdc_jtag_in(uint8_t ep);
 
-usbd_class_t cdc_class0;
-usbd_interface_t cdc_data_intf0;
-usbd_class_t cdc_class1;
-usbd_interface_t cdc_data_intf1;
+usbd_class_t cdc_class_jtag;
+usbd_interface_t cdc_data_intf_jtag;
+usbd_class_t cdc_class_acm;
+usbd_interface_t cdc_data_intf_acm;
 extern uint8_t cdc_descriptor[];
 struct device *usb_fs;
 
@@ -236,18 +236,18 @@ void usbd_cdc_acm_bulk_in(uint8_t ep)
 }
 
 /************************  endpoint definition  ************************/
-// For UART
-usbd_endpoint_t cdc_out_ep1 = { .ep_addr = CDC_OUT_EP,
-                                .ep_cb = usbd_cdc_acm_bulk_out };
-
-usbd_endpoint_t cdc_in_ep1 = { .ep_addr = CDC_IN_EP,
-                               .ep_cb = usbd_cdc_acm_bulk_in };
-
 // For JTAG
-usbd_endpoint_t cdc_out_ep0 = { .ep_addr = JTAG_OUT_EP,
-                                .ep_cb = usbd_cdc_jtag_out };
+usbd_endpoint_t cdc_out_ep_jtag = { .ep_addr = JTAG_OUT_EP,
+                                    .ep_cb = usbd_cdc_jtag_out };
 
-usbd_endpoint_t cdc_in_ep0 = { .ep_addr = JTAG_IN_EP, .ep_cb = usbd_cdc_jtag_in };
+usbd_endpoint_t cdc_in_ep_jtag = { .ep_addr = JTAG_IN_EP,
+                                   .ep_cb = usbd_cdc_jtag_in };
+// For UART
+usbd_endpoint_t cdc_out_ep_acm = { .ep_addr = CDC_OUT_EP,
+                                   .ep_cb = usbd_cdc_acm_bulk_out };
+
+usbd_endpoint_t cdc_in_ep_acm = { .ep_addr = CDC_IN_EP,
+                                  .ep_cb = usbd_cdc_acm_bulk_in };
 
 // for dbg chip id
 static void hexarr2string(uint8_t *hexarray, int length, uint8_t *string)
@@ -268,11 +268,13 @@ int main(void)
     uint8_t chipid2[6];
     GLB_Select_Internal_Flash();
     bflb_platform_init(0);
+
     uart_ringbuffer_init();
     uart1_init();
     uart1_set_dtr_rts(UART_DTR_PIN, UART_RTS_PIN);
     uart1_dtr_init();
     uart1_rts_init();
+
     led_gpio_init();
     led_set(0, 1); // led0 for RX/TX indication
     led_set(1, 1); // led1 for Power indication
@@ -290,13 +292,14 @@ int main(void)
     cdc_descriptor[descriptor_idx + 8] = 0x44;  // chipid2[4];
     cdc_descriptor[descriptor_idx + 10] = 0x55; // chipid2[5];
     usbd_desc_register(cdc_descriptor);
-    usbd_ftdi_add_interface(&cdc_class0, &cdc_data_intf0);
-    usbd_interface_add_endpoint(&cdc_data_intf0, &cdc_out_ep0);
-    usbd_interface_add_endpoint(&cdc_data_intf0, &cdc_in_ep0);
 
-    usbd_ftdi_add_interface(&cdc_class1, &cdc_data_intf1);
-    usbd_interface_add_endpoint(&cdc_data_intf1, &cdc_out_ep1);
-    usbd_interface_add_endpoint(&cdc_data_intf1, &cdc_in_ep1);
+    usbd_ftdi_add_interface(&cdc_class_jtag, &cdc_data_intf_jtag);
+    usbd_interface_add_endpoint(&cdc_data_intf_jtag, &cdc_out_ep_jtag);
+    usbd_interface_add_endpoint(&cdc_data_intf_jtag, &cdc_in_ep_jtag);
+
+    usbd_ftdi_add_interface(&cdc_class_acm, &cdc_data_intf_acm);
+    usbd_interface_add_endpoint(&cdc_data_intf_acm, &cdc_out_ep_acm);
+    usbd_interface_add_endpoint(&cdc_data_intf_acm, &cdc_in_ep_acm);
 
     usb_fs = usb_dc_init();
     if (usb_fs) {
