@@ -54,6 +54,16 @@ static void usbd_ftdi_reset(void)
 #define SIO_WRITE_EEPROM_REQUEST        0x91
 #define SIO_ERASE_EEPROM_REQUEST        0x92
 
+#define SIO_SET_DATA_PARITY_NONE        (0x0 << 8)
+#define SIO_SET_DATA_PARITY_ODD         (0x1 << 8)
+#define SIO_SET_DATA_PARITY_EVEN        (0x2 << 8)
+#define SIO_SET_DATA_PARITY_MARK        (0x3 << 8)
+#define SIO_SET_DATA_PARITY_SPACE       (0x4 << 8)
+#define SIO_SET_DATA_STOP_BITS_1        (0x0 << 11)
+#define SIO_SET_DATA_STOP_BITS_15       (0x1 << 11)
+#define SIO_SET_DATA_STOP_BITS_2        (0x2 << 11)
+#define SIO_SET_BREAK                   (0x1 << 14)
+
 #define SIO_DISABLE_FLOW_CTRL           0x0
 #define SIO_RTS_CTS_HS                  (0x1 << 8)
 #define SIO_DTR_DSR_HS                  (0x2 << 8)
@@ -106,8 +116,8 @@ static int ftdi_vendor_request_handler(struct usb_setup_packet *pSetup,
             *data = (uint8_t *)&ftdi_eeprom_info[pSetup->wIndexL];
             *len = 2;
             break;
-        case SIO_RESET_REQUEST:
 
+        case SIO_RESET_REQUEST:
             break;
 
         case SIO_SET_MODEM_CTRL_REQUEST:
@@ -125,9 +135,10 @@ static int ftdi_vendor_request_handler(struct usb_setup_packet *pSetup,
                 usbd_ftdi_set_rts(false);
             }
             break;
-        case SIO_SET_FLOW_CTRL_REQUEST:
 
+        case SIO_SET_FLOW_CTRL_REQUEST:
             break;
+
         case SIO_SET_BAUDRATE_REQUEST: // wValue，2个字节波特率
         {
             uint8_t baudrate_high = (pSetup->wIndex >> 8);
@@ -137,6 +148,7 @@ static int ftdi_vendor_request_handler(struct usb_setup_packet *pSetup,
             }
             break;
         }
+
         case SIO_SET_DATA_REQUEST:
             /*
              * D0-D7 databits   BITS_7=7, BITS_8=8
@@ -192,18 +204,20 @@ static int ftdi_vendor_request_handler(struct usb_setup_packet *pSetup,
             *data = (uint8_t *)&ftdi_eeprom_info[2];
             *len = 2;
             break;
+
         case SIO_SET_EVENT_CHAR_REQUEST:
-
             break;
+
         case SIO_SET_ERROR_CHAR_REQUEST:
-
             break;
+
         case SIO_SET_LATENCY_TIMER_REQUEST:
             if (pSetup->wIndexL == 1)
                 Latency_Timer1 = pSetup->wValueL;
             else
                 Latency_Timer2 = pSetup->wValueL;
             break;
+
         case SIO_GET_LATENCY_TIMER_REQUEST:
             if (pSetup->wIndexL == 1)
                 *data = &Latency_Timer1;
@@ -212,9 +226,10 @@ static int ftdi_vendor_request_handler(struct usb_setup_packet *pSetup,
             *len = 1;
             // USBD_LOG("get latency:%d,len:%d\r\n",Latency_Timer1,*len);
             break;
-        case SIO_SET_BITMODE_REQUEST:
 
+        case SIO_SET_BITMODE_REQUEST:
             break;
+
         default:
             USBD_LOG_DBG("CDC ACM request 0x%x, value 0x%x\r\n", pSetup->bRequest,
                          pSetup->wValue);
@@ -231,7 +246,7 @@ static void ftdi_notify_handler(uint8_t event, void *arg)
             break;
         case USB_EVENT_SOF:
             sof_tick++;
-            USBD_LOG_DBG("tick: %d\r\n", sof_tick);
+            // USBD_LOG_DBG("tick: %d\r\n", sof_tick);
             break;
         default:
             break;
