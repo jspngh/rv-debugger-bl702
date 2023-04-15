@@ -171,16 +171,17 @@ uint16_t usb_dc_ftdi_send_from_ringbuffer(struct device *dev,
             return -USB_DC_RB_SIZE_SMALL_ERR;
         }
         */
-        if (ep_idx == CDC_IN_EP) // UART
-        {
+        // UART
+        if (ep_idx == CDC_IN_EP) {
             if ((uint32_t)(usbd_ftdi_get_sof_tick() - temp_tick2) >= usbd_ftdi_get_latency_timer2()) {
                 uint8_t ftdi_header[2] = { 0x01, 0x60 };
                 temp_tick2 = usbd_ftdi_get_sof_tick();
                 memcopy_to_fifo((void *)addr, ftdi_header, 2);
                 USB_Set_EPx_Rdy(ep_idx);
             }
-        } else //0x81, JTAG
-        {
+        }
+        // 0x81, JTAG
+        else {
             // if ((uint32_t)(usbd_ftdi_get_sof_tick() - temp_tick1) >=
             //     usbd_ftdi_get_latency_timer1()) {
             //     if (mpsse_status != 12) {
@@ -302,16 +303,15 @@ int main(void)
     jtag_ringbuffer_init();
     jtag_gpio_init();
     EF_Ctrl_Read_Chip_ID(chipid);
-    // hexarr2string(&chipid[2],3,chipid2);
-    // bflb_platform_dump(chipid,8);
-    // bflb_platform_dump(chipid2,6);
+    hexarr2string(&chipid[2], 3, chipid2);
     const size_t descriptor_idx = 0x12 + 0x37 + 0x04 + 0x0a + 0x1c + 0x24;
-    cdc_descriptor[descriptor_idx] = 0x00;      // chipid2[0];
-    cdc_descriptor[descriptor_idx + 2] = 0x11;  // chipid2[1];
-    cdc_descriptor[descriptor_idx + 4] = 0x22;  // chipid2[2];
-    cdc_descriptor[descriptor_idx + 6] = 0x33;  // chipid2[3];
-    cdc_descriptor[descriptor_idx + 8] = 0x44;  // chipid2[4];
-    cdc_descriptor[descriptor_idx + 10] = 0x55; // chipid2[5];
+    memcpy(&cdc_descriptor[descriptor_idx], chipid2, 6);
+    // cdc_descriptor[descriptor_idx] = 0x00;
+    // cdc_descriptor[descriptor_idx + 2] = 0x11;
+    // cdc_descriptor[descriptor_idx + 4] = 0x22;
+    // cdc_descriptor[descriptor_idx + 6] = 0x33;
+    // cdc_descriptor[descriptor_idx + 8] = 0x44;
+    // cdc_descriptor[descriptor_idx + 10] = 0x55;
     usbd_desc_register(cdc_descriptor);
 
     usbd_ftdi_add_interface(&cdc_class_jtag, &cdc_data_intf_jtag);
