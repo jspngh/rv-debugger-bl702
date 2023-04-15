@@ -77,6 +77,7 @@ void jtag_ringbuffer_init(void)
     /* init ring_buffer */
     Ring_Buffer_Init(&jtag_tx_rb, jtag_tx_buffer, JTAG_TX_BUFFER_SIZE, rb_lock, rb_unlock);
 }
+
 #if GOWIN_INT_FLASH_QUIRK
 static void pwm_start(void)
 {
@@ -121,6 +122,7 @@ void pwm_init(void)
     PWM_Channel_Init(&pwmCfg);
 }
 #endif
+
 void jtag_gpio_init(void)
 {
     gpio_set_mode(TMS_PIN, GPIO_OUTPUT_MODE);
@@ -134,6 +136,14 @@ void jtag_gpio_init(void)
 #if GOWIN_INT_FLASH_QUIRK
     pwm_init();
 #endif
+}
+
+void jtag_gpio_disconnect(void)
+{
+    gpio_set_mode(TMS_PIN, GPIO_HZ_MODE);
+    gpio_set_mode(TDI_PIN, GPIO_HZ_MODE);
+    gpio_set_mode(TCK_PIN, GPIO_HZ_MODE);
+    gpio_set_mode(TDO_PIN, GPIO_HZ_MODE);
 }
 
 #if MPSSE_SPI_HW
@@ -152,6 +162,7 @@ static inline void spi_on(void)
     /**spi enable*/
     (*(volatile uint32_t *)SPI_BASE_ADDR) |= (1 << 0);
 }
+
 static inline void spi_on(void)
 {
     /**gpio spi func*/
@@ -167,6 +178,7 @@ static inline void spi_on(void)
     /**spi enable*/
     (*(volatile uint32_t *)SPI_BASE_ADDR) |= (1 << 0);
 }
+
 static inline void spi_off(void)
 {
     /**spi disable*/
@@ -182,6 +194,7 @@ static inline void spi_off(void)
     temp_val = (temp_val & (~(31 << 8))) | (11 << 8);
     BL_WR_WORD(0x40000100, temp_val);
 }
+
 void jtag_spi_init(void)
 {
     spi_register(SPI0_INDEX, "jtag_spi", DEVICE_OFLAG_RDWR);
@@ -194,8 +207,7 @@ void jtag_spi_init(void)
     /*rx ignore disable*/
     (*(volatile uint32_t *)0x4000A200) &= (~(1 << 8));
 }
-
-#endif
+#endif /* MPSSE_SPI_HW */
 
 void usbd_cdc_jtag_out(uint8_t ep)
 {
@@ -462,7 +474,6 @@ ATTR_CLOCK_SECTION void jtag_process(void)
 
             case MPSSE_TRANSMIT_BIT:
                 data = jtag_rx_buffer[jtag_rx_pos];
-
                 usb_tx_data = 0;
 
                 do {
@@ -532,7 +543,6 @@ ATTR_CLOCK_SECTION void jtag_process(void)
                 jtag_write(usb_tx_data);
                 mpsse_status = MPSSE_IDLE;
                 jtag_rx_pos++;
-
                 break;
 
             case MPSSE_TMS_OUT:
@@ -594,8 +604,8 @@ ATTR_CLOCK_SECTION void jtag_process(void)
                 mpsse_status = MPSSE_IDLE;
                 jtag_rx_pos++;
                 break;
-#if GOWIN_INT_FLASH_QUIRK
 
+#if GOWIN_INT_FLASH_QUIRK
             case MPSSE_RUN_TEST:
                 if (mpsse_longlen == 0) {
                     mpsse_status = MPSSE_IDLE;

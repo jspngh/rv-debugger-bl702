@@ -46,6 +46,7 @@ extern struct device *usb_dc_init(void);
 extern void jtag_process(void);
 extern void jtag_ringbuffer_init(void);
 extern void jtag_gpio_init(void);
+extern void jtag_gpio_disconnect(void);
 extern void usbd_cdc_jtag_out(uint8_t ep);
 extern void usbd_cdc_jtag_in(uint8_t ep);
 
